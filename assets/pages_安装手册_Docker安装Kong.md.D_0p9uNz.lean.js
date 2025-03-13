@@ -1,0 +1,42 @@
+import{_ as s,a as n,a2 as e,o as p}from"./chunks/framework.DAlL-BGO.js";const t="/assets/image-6.Cf2RNavl.png",h=JSON.parse('{"title":"","description":"","frontmatter":{"lastUpdated":"2023-12-18 22:22"},"headers":[],"relativePath":"pages/安装手册/Docker安装Kong.md","filePath":"pages/安装手册/Docker安装Kong.md","lastUpdated":1733806965000}'),o={name:"pages/安装手册/Docker安装Kong.md"};function l(i,a,c,d,r,u){return p(),n("div",null,a[0]||(a[0]=[e(`<h3 id="_1-环境说明" tabindex="-1">1. 环境说明 <a class="header-anchor" href="#_1-环境说明" aria-label="Permalink to &quot;1. 环境说明&quot;">​</a></h3><ul><li><p>系统版本 : CentOS8</p></li><li><p>Docker : <code>Docker CE 19.03.14</code> <a href="https://mirrors.cloud.tencent.com/help/docker-ce.html" target="_blank" rel="noreferrer">使用腾讯镜像源安装</a></p></li><li><p>服务器IP: 192.168.0.21</p></li><li><p>Docker镜像版本: postgres:9.6 / kong:2.2.1-alpine / <code>pantsel/konga:next</code></p></li></ul><h3 id="_2-防火墙配置" tabindex="-1">2. 防火墙配置 <a class="header-anchor" href="#_2-防火墙配置" aria-label="Permalink to &quot;2. 防火墙配置&quot;">​</a></h3><p>Docker容器默认使用 <code>bridge</code>, 配置 firewalld 信任 docker 的 ip 地址</p><ul><li>查看子网</li></ul><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>$ docker network inspect bridge</span></span></code></pre></div><p>其中 <code>Subnet</code> 就是对应的容器子网，例如这里查看到的是 <code>&quot;Subnet&quot;: &quot;172.17.0.0/16&quot;</code></p><ul><li>配置</li></ul><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>$ firewall-cmd --zone=trusted --add-source=172.17.0.0/16 --permanent</span></span>
+<span class="line"><span>$ firewall-cmd --reload</span></span></code></pre></div><p>也可以直接添加interface，例如</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>$ firewall-cmd --zone=trusted --add-interface=docker0 --permanent</span></span>
+<span class="line"><span>$ firewall-cmd --reload</span></span></code></pre></div><h3 id="_3-安装-postgres" tabindex="-1">3. 安装 postgres <a class="header-anchor" href="#_3-安装-postgres" aria-label="Permalink to &quot;3. 安装 postgres&quot;">​</a></h3><p>使用 Docker 安装 <code>PostgreSQL</code>, 默认用户是 <code>kong</code>, 数据库 <code>kong</code>, 密码是 <code>123456</code>。 先使用 <code>mkdir -p /opt/docker-data/postgres</code>创建目录，之后执行命令</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>$ docker run -d --name kong-database \\</span></span>
+<span class="line"><span>                -p 5432:5432 \\</span></span>
+<span class="line"><span>                -e &quot;POSTGRES_USER=kong&quot; \\</span></span>
+<span class="line"><span>                -e &quot;POSTGRES_DB=kong&quot; \\</span></span>
+<span class="line"><span>                -e &quot;POSTGRES_PASSWORD=123456&quot; \\</span></span>
+<span class="line"><span>                -v /opt/docker-data/postgres:/var/lib/postgresql/data \\</span></span>
+<span class="line"><span>                postgres:9.6</span></span></code></pre></div><h3 id="_4-安装kong" tabindex="-1">4. 安装Kong <a class="header-anchor" href="#_4-安装kong" aria-label="Permalink to &quot;4. 安装Kong&quot;">​</a></h3><ul><li>初始化Kong数据库（创建表）</li></ul><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>$ docker run --rm \\</span></span>
+<span class="line"><span>    -e &quot;KONG_DATABASE=postgres&quot; \\</span></span>
+<span class="line"><span>    -e &quot;KONG_PG_HOST=192.168.0.21&quot; \\</span></span>
+<span class="line"><span>    -e &quot;KONG_PG_PORT=5432&quot; \\</span></span>
+<span class="line"><span>    -e &quot;KONG_PG_USER=kong&quot; \\</span></span>
+<span class="line"><span>    -e &quot;KONG_PG_PASSWORD=123456&quot; \\</span></span>
+<span class="line"><span>    -e &quot;KONG_PG_DATABASE=kong&quot; \\</span></span>
+<span class="line"><span>    kong:2.2.1-alpine kong migrations bootstrap</span></span></code></pre></div><ul><li>安装Kong</li></ul><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>$ docker run -d --name kong \\</span></span>
+<span class="line"><span>     -e &quot;KONG_DATABASE=postgres&quot; \\</span></span>
+<span class="line"><span>     -e &quot;KONG_PG_HOST=192.168.0.21&quot; \\</span></span>
+<span class="line"><span>     -e &quot;KONG_PG_PORT=5432&quot; \\</span></span>
+<span class="line"><span>     -e &quot;KONG_PG_USER=kong&quot; \\</span></span>
+<span class="line"><span>     -e &quot;KONG_PG_PASSWORD=123456&quot; \\</span></span>
+<span class="line"><span>     -e &quot;KONG_PG_DATABASE=kong&quot; \\</span></span>
+<span class="line"><span>     -e &quot;KONG_PROXY_ACCESS_LOG=/dev/stdout&quot; \\</span></span>
+<span class="line"><span>     -e &quot;KONG_ADMIN_ACCESS_LOG=/dev/stdout&quot; \\</span></span>
+<span class="line"><span>     -e &quot;KONG_PROXY_ERROR_LOG=/dev/stderr&quot; \\</span></span>
+<span class="line"><span>     -e &quot;KONG_ADMIN_ERROR_LOG=/dev/stderr&quot; \\</span></span>
+<span class="line"><span>     -e &quot;KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl&quot; \\</span></span>
+<span class="line"><span>     -p 8000:8000 \\</span></span>
+<span class="line"><span>     -p 8443:8443 \\</span></span>
+<span class="line"><span>     -p 8001:8001 \\</span></span>
+<span class="line"><span>     -p 8444:8444 \\</span></span>
+<span class="line"><span>     kong:2.2.1-alpine</span></span></code></pre></div><h3 id="_4-安装konga" tabindex="-1">4. 安装Konga <a class="header-anchor" href="#_4-安装konga" aria-label="Permalink to &quot;4. 安装Konga&quot;">​</a></h3><p>安装第三方管理端UI界面</p><ul><li>初始化数据库</li></ul><p>创建并初始化konga数据库，如果版本更新后有表的改动，执行该方法也会更新表</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>$ docker run --rm pantsel/konga:next -c prepare -a postgres -u postgresql://kong:123456@192.168.0.21:5432/konga</span></span></code></pre></div><ul><li>安装Konga</li></ul><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>$ docker run -d -p 1337:1337 \\</span></span>
+<span class="line"><span>          -e &quot;DB_ADAPTER=postgres&quot; \\</span></span>
+<span class="line"><span>          -e &quot;DB_HOST=192.168.0.21&quot; \\</span></span>
+<span class="line"><span>          -e &quot;DB_PORT=5432&quot; \\</span></span>
+<span class="line"><span>          -e &quot;DB_USER=kong&quot; \\</span></span>
+<span class="line"><span>          -e &quot;DB_PASSWORD=123456&quot; \\</span></span>
+<span class="line"><span>          -e &quot;DB_DATABASE=konga&quot; \\</span></span>
+<span class="line"><span>          -e &quot;NODE_ENV=production&quot; \\</span></span>
+<span class="line"><span>          --name konga \\</span></span>
+<span class="line"><span>          pantsel/konga:next</span></span></code></pre></div><ul><li>开放1337端口</li></ul><p>这里是为了方便测试，开放1337公开访问，实际生成环境部署不建议开放公开访问，可以限制管理机器的IP访问</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>$ firewall-cmd --add-port=1337/tcp --permanent</span></span>
+<span class="line"><span>$ firewall-cmd --reload</span></span></code></pre></div><ul><li>测试</li></ul><p>访问网址 <code>http://192.168.0.21:1337</code> ，登录并添加管理端Kong Admin URL <code>http://192.168.0.21:8001</code>,连接成功如下</p><p><img src="`+t+'" alt="alt text"></p>',32)]))}const k=s(o,[["render",l]]);export{h as __pageData,k as default};
